@@ -1,0 +1,65 @@
+/go-api-project
+│
+├── cmd/                # Command-line specific code
+│   └── api/
+│       └── main.go     # Main entry point for the API server
+│
+├── pkg/                # Reusable packages (shared code that can be reused across projects)
+│   ├── logger/         # Logging utilities
+│   └── utils/          # Helper utilities and shared functions
+│
+├── internal/           # Application-specific code (not meant to be reused across projects)
+│   ├── config/         # Configuration loading and environment variables
+│   │   └── config.go
+│   │
+│   ├── server/         # Server setup and routing
+│   │   ├── router.go   # Router setup (mux or other router)
+│   │   └── server.go   # HTTP server setup
+│   │
+│   ├── api/            # API-related code (handlers, middlewares, etc.)
+│   │   ├── handlers/   # Route handlers for each module or feature
+│   │   │   ├── user_handler.go
+│   │   │   ├── auth_handler.go
+│   │   └── middlewares/ # Middleware logic
+│   │       └── auth_middleware.go
+│   │
+│   ├── models/         # Data models and structs (e.g., User, Product)
+│   │   └── user.go
+│   │
+│   ├── repositories/   # Database interaction code
+│   │   └── user_repository.go
+│   │
+│   ├── services/       # Business logic
+│   │   └── user_service.go
+│   │
+│   └── db/             # Database setup and migrations
+│       ├── migrations/ # SQL or schema migrations
+│       └── db.go       # Database connection setup
+│
+├── scripts/            # Any setup, build, or deployment scripts
+│   └── migrate.sh
+│
+├── docs/               # Documentation for the API
+│   └── openapi.yaml    # OpenAPI spec (if applicable)
+│
+└── tests/              # Unit and integration tests
+    ├── api_test.go
+    ├── user_service_test.go
+    └── mocks/          # Mock files for testing
+
+
+
+Directory Descriptions
+cmd: Stores the main application entry point for the API server.
+pkg: Contains utility packages for reusable code, e.g., logging or error handling utilities.
+internal: Holds application-specific packages (not intended for external projects).
+config: Manages configuration and environment variables.
+server: Sets up the HTTP server and routing.
+api: Contains API logic, with subdirectories for handlers and middlewares.
+models: Defines data models representing database entities or response/request objects.
+repositories: Contains code to interact with the database.
+services: Holds business logic that is separate from HTTP request handling.
+db: Manages database connections and migrations.
+scripts: Contains scripts for tasks like migration, testing, or deployment.
+docs: Includes documentation files such as API specs or any external documentation.
+tests: Contains unit and integration tests, along with mocks for testing dependencies.
