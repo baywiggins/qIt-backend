@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"net/http"
-
-	"github.com/baywiggins/qIt-backend/internal/api/handlers"
+	"github.com/baywiggins/qIt-backend/internal/server"
 )
 
 func main() {
@@ -16,8 +14,7 @@ func main() {
  \ \_____\  \ \_____\     \ \_\ \_\  \ \_\    \ \_\ 
   \/_____/   \/_____/      \/_/\/_/   \/_/     \/_/ 
                                                     `)
-													
-	handlers.HandleRoutes()
-
-	http.ListenAndServe("localhost:3000", nil)
+		
+	// Call our function to start the server
+	server.StartServer()
 }

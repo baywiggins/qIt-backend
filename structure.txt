@@ -63,3 +63,4 @@ db: Manages database connections and migrations.
 scripts: Contains scripts for tasks like migration, testing, or deployment.
 docs: Includes documentation files such as API specs or any external documentation.
 tests: Contains unit and integration tests, along with mocks for testing dependencies.
+
