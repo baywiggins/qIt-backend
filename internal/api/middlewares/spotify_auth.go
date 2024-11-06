@@ -30,10 +30,9 @@ func GetSpotifyAuthURL() (string, error) {
 	var err error;
 
 	apiURL := "http://" + config.API_URL
-	var authURL string = config.SpotifyURL + "/authorize"
+	var authURL string = config.SpotifyAuthURL + "/authorize"
 
 	// Params of our auth URL we will be returning
-	// Change values to be gotten from the environment
 	var params = map[string]string{
 		"client_id": config.ClientID,
 		"response_type": "code",
@@ -56,15 +55,32 @@ func GetSpotifyAuthURL() (string, error) {
 	return u.String(), err
 }
 
-func GetAccessToken() string {
+// Function for Spotify controller endpoints to use
+func GetAccessToken() (string, error) {
+	var err error;
+
 	accessToken, accessFound := tokenCache.Get("accessToken")
-	refreshToken, refreshFound := tokenCache.Get("refreshToken")
+	_, refreshFound := tokenCache.Get("refreshToken")
+
+	if !accessFound && !refreshFound {
+		// If neither are found, user needs to authenticate with Spotify
+		return "", errors.New("user must authenticate with spotify first")
+	} else if !accessFound && refreshFound{
+		// If access token not found, but refresh token is, get token from refresh function
+		tokenData, err := GetRefreshToken()
+		if err != nil {
+			return "", fmt.Errorf("error in GetAccessToken: '%s'", err.Error())
+		}
+		return tokenData.AccessToken, err
+	} else {
+		return accessToken.(string), err
+	}
 }
 
-func GetAccessTokenFromSpotify(code string) (SpotifyTokenResponse, error) {
+func GetAccessTokenFromSpotify(code string) error {
 	var err error;
 	// Get the URL to send POST request to
-	tokenURL := config.SpotifyURL + "/api/token"
+	tokenURL := config.SpotifyAuthURL + "/api/token"
 	data := url.Values{}
 	// Add query params for the POST request
 	data.Set("grant_type", "authorization_code")
@@ -74,14 +90,14 @@ func GetAccessTokenFromSpotify(code string) (SpotifyTokenResponse, error) {
 	// Get our token data JSON
 	tokenData, err := sendPostRequestWithAuthorization(tokenURL, data)
 	if err != nil {
-		return SpotifyTokenResponse{}, fmt.Errorf("error in GetAccessTokenFromSpotify: '%s'", err.Error())
+		return fmt.Errorf("error in GetAccessTokenFromSpotify: '%s'", err.Error())
 	}
 
 	// Add to cache
 	tokenCache.Set("accessToken", tokenData.AccessToken, cache.DefaultExpiration)
 	tokenCache.Set("refreshToken", tokenData.RefreshToken, cache.NoExpiration)
 	
-	return tokenData, err
+	return err
 }
 
 func GetRefreshToken() (SpotifyTokenResponse, error) {
@@ -92,7 +108,7 @@ func GetRefreshToken() (SpotifyTokenResponse, error) {
 		return SpotifyTokenResponse{}, errors.New("refreshToken not found in cache in GetRefreshToken")
 	}
 	// Get the URL to send POST request to
-	tokenURL := config.SpotifyURL + "/api/token"
+	tokenURL := config.SpotifyAuthURL + "/api/token"
 	data := url.Values{}
 	// Add query params to POST request
 	data.Set("grant_type", "refresh_token")
@@ -101,6 +117,12 @@ func GetRefreshToken() (SpotifyTokenResponse, error) {
 	refreshTokenData, err := sendPostRequestWithAuthorization(tokenURL, data)
 	if err != nil {
 		return SpotifyTokenResponse{}, fmt.Errorf("error in GetRefreshToken: '%s'", err.Error())
+	}
+
+	// Update our cache again with new token
+	tokenCache.Set("accessToken", refreshTokenData.AccessToken, cache.DefaultExpiration)
+	if refreshTokenData.RefreshToken != "" {
+		tokenCache.Set("refreshToken", refreshTokenData.RefreshToken, cache.NoExpiration)
 	}
 
 	return refreshTokenData, err
@@ -141,9 +163,9 @@ func sendPostRequestWithAuthorization(url string, queryData url.Values) (Spotify
 	if err := json.Unmarshal(body, &tokenData); err != nil {
 		return SpotifyTokenResponse{}, fmt.Errorf("error in sendPostRequestWithAuthorization: '%s'", err.Error())
 	}
-	
+
 	if resp.StatusCode != 200 {
-		return SpotifyTokenResponse{}, fmt.Errorf("error in sendPostRequestWithAuthorization: Spotify responded with error")
+		return SpotifyTokenResponse{}, fmt.Errorf("error in sendPostRequestWithAuthorization: Spotify responded with error: %s", body)
 	}
 	return tokenData, err
 }

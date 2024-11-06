@@ -5,5 +5,6 @@ import (
 )
 
 func HandleRoutes() {
-	handlers.HandleSpotifyRoutes()
+	handlers.HandleSpotifyAuthRoutes()
+	handlers.HandleSpotifyControllerRoutes()
 }
