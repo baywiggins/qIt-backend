@@ -26,7 +26,7 @@ func init() {
     ClientSecret = os.Getenv("CLIENT_SECRET")
     Scopes = os.Getenv("SCOPES")
 
-    envarList := [5]string{SpotifyAuthURL, ClientID, API_URL, ClientSecret, Scopes}
+    envarList := [7]string{SpotifyAuthURL, SpotifyPlayerURL, SpotifySearchURL, ClientID, API_URL, ClientSecret, Scopes}
 
     for i := range envarList {
         if envarList[i] == "" {

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -20,34 +21,36 @@ func SendSpotifyPlayerRequest(u url.URL, httpMethod string, queryParams map[stri
 	// Create request
 	req, err := http.NewRequest(httpMethod, u.String(), nil)
 	if err != nil {
-		fmt.Println("Add error handling pls lol")
-		return nil, err
+		return nil, fmt.Errorf("error in SendSpotifyPlayerRequest: '%s", err.Error())
 	}
 
 	// Add headers to request
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
-
 	// Send the request
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Add error handling plsssss looooool")
-		return nil, err
+		return nil, fmt.Errorf("error in SendSpotifyPlayerRequest: '%s", err.Error())
 	}
 	defer resp.Body.Close()
 
 	// Read response body data
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("pls bro")
-		return nil, err
+		return nil, fmt.Errorf("error in SendSpotifyPlayerRequest: '%s", err.Error())
 	}
 
 	return body, err
 }
 
-func SendSpotifySearchRequest () {
-	return
+// JSON unmarshaling
+func UnmarshalJSON[T any](body []byte) (T, error) {
+    var result T
+    err := json.Unmarshal(body, &result)
+    if err != nil {
+        return result, fmt.Errorf("error in UnmarshalJSON: '%s'", err.Error())
+    }
+    return result, nil
 }
