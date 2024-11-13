@@ -14,8 +14,6 @@ import (
 	"github.com/baywiggins/qIt-backend/pkg/utils"
 )
 
-// REMEMBER TO ACCOUNT FOR CONDITION IF TOKEN EXPIRES BETWEEN API CALLS
-// IF EVER GET ACCESS DENIED FROM SPOTIFY API JUST REFRESH THE TOKEN!!!!!
 
 func HandleSpotifyControllerRoutes() {
 	// Get currently playing track
@@ -57,6 +55,10 @@ func handleCurrentlyPlaying(w http.ResponseWriter, r *http.Request) {
 	// Call our spotify API function to get the response body
 	body, err := services.SendSpotifyPlayerRequest(*sURL, http.MethodGet, nil, headers)
 	if err != nil {
+		if err.Error() == "invalid access token" {
+			utils.RespondWithStatusUnavailable(w)
+			return
+		}
 		log.Printf("ERROR: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleCurrentlyPlaying: '%s' \n", err.Error()))
 		return
@@ -104,6 +106,10 @@ func handleGetQueue(w http.ResponseWriter, r *http.Request) {
 	// Call our spotify API function to get the response body
 	body, err := services.SendSpotifyPlayerRequest(*sURL, http.MethodGet, nil, headers)
 	if err != nil {
+		if err.Error() == "invalid access token" {
+			utils.RespondWithStatusUnavailable(w)
+			return
+		}
 		log.Printf("ERROR: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByTrack: '%s' \n", err.Error()))
 		return
@@ -169,6 +175,10 @@ func handleSearchByTrack(w http.ResponseWriter, r *http.Request) {
 	// Call our spotify API function to get the response body
 	body, err := services.SendSpotifyPlayerRequest(*sURL, http.MethodGet, queryParams, headers)
 	if err != nil {
+		if err.Error() == "invalid access token" {
+			utils.RespondWithStatusUnavailable(w)
+			return
+		}
 		log.Printf("ERROR: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByTrack: '%s' \n", err.Error()))
 		return
@@ -222,6 +232,10 @@ func handleSearchByURL(w http.ResponseWriter, r *http.Request) {
 	// Call our spotify API function to get the response body
 	body, err := services.SendSpotifyPlayerRequest(*sURL, http.MethodGet, nil, headers)
 	if err != nil {
+		if err.Error() == "invalid access token" {
+			utils.RespondWithStatusUnavailable(w)
+			return
+		}
 		log.Printf("ERROR: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByURL: '%s' \n", err.Error()))
 		return
@@ -268,6 +282,10 @@ func handlePlay(w http.ResponseWriter, r *http.Request) {
 	// Call spotify API function to get response body
 	_, err = services.SendSpotifyPlayerRequest(*sURL, http.MethodPut, nil, headers)
 	if err != nil {
+		if err.Error() == "invalid access token" {
+			utils.RespondWithStatusUnavailable(w)
+			return
+		}
 		log.Printf("ERROR: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handlePlay: '%s' \n", err.Error()))
 		return
@@ -298,6 +316,10 @@ func handlePause(w http.ResponseWriter, r *http.Request) {
 	// Call spotify API function to get response body
 	_, err = services.SendSpotifyPlayerRequest(*sURL, http.MethodPut, nil, headers)
 	if err != nil {
+		if err.Error() == "invalid access token" {
+			utils.RespondWithStatusUnavailable(w)
+			return
+		}
 		log.Printf("ERROR: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handlePause: '%s' \n", err.Error()))
 		return
@@ -306,8 +328,12 @@ func handlePause(w http.ResponseWriter, r *http.Request) {
 
 func handleAddToQueue(w http.ResponseWriter, r *http.Request) {
 	var err error;
-	// (TODO) Get uri from request query params
-	trackURI := "spotify:track:56uXDJRCuoS7abX3SkzHKQ"
+	trackURI := r.URL.Query().Get("track_uri")
+	if trackURI == "" {
+		log.Println("ERROR: 'trackURI' was null", )
+		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleAddToQueue: '%s' \n", fmt.Errorf("'urlQueryParam' was null")))
+		return
+	}
 	// Parse our request URL
 	sURL, err := url.Parse(config.SpotifyPlayerURL + "/queue")
 	if err != nil {
@@ -333,6 +359,10 @@ func handleAddToQueue(w http.ResponseWriter, r *http.Request) {
 	// Call spotify API function to get response body
 	_, err = services.SendSpotifyPlayerRequest(*sURL, http.MethodPost, queryParams, headers)
 	if err != nil {
+		if err.Error() == "invalid access token" {
+			utils.RespondWithStatusUnavailable(w)
+			return
+		}
 		log.Printf("ERROR: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleAddToQueue: '%s' \n", err.Error()))
 		return

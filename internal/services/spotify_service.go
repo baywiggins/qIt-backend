@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -35,6 +36,11 @@ func SendSpotifyPlayerRequest(u url.URL, httpMethod string, queryParams map[stri
 		return nil, fmt.Errorf("error in SendSpotifyPlayerRequest: '%s", err.Error())
 	}
 	defer resp.Body.Close()
+
+	// Check for unauthorized
+	if resp.StatusCode == 401 {
+		return nil, errors.New("invalid access token")
+	}
 
 	// Read response body data
 	body, err := io.ReadAll(resp.Body)
