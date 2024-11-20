@@ -2,10 +2,28 @@ package main
 
 import (
 	"fmt"
+	"log"
+
+	"github.com/baywiggins/qIt-backend/internal/config"
+	"github.com/baywiggins/qIt-backend/internal/db"
 	"github.com/baywiggins/qIt-backend/internal/server"
 )
 
 func main() {
+	var err error;
+	// Initialize database
+	database, err := db.Connect(config.DBName)
+	if err != nil {
+		log.Fatalf("failed to create server: %s", err)
+	}
+	defer database.Close()
+	
+	// Apply migrations
+	err = db.Migrate(database)
+	if err != nil {
+		log.Fatalf("failed to execute migrations: %s", err)
+	}
+
 	fmt.Println("Starting API...")
 	fmt.Println(`
  ______     ______        ______     ______   __    
@@ -16,5 +34,5 @@ func main() {
                                                     `)
 		
 	// Call our function to start the server
-	server.StartServer()
+	server.StartServer(database)
 }

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -15,7 +16,7 @@ import (
 )
 
 
-func HandleSpotifyControllerRoutes() {
+func HandleSpotifyControllerRoutes(db *sql.DB) {
 	// Get currently playing track
 	http.Handle("GET /spotify/currently-playing", middlewares.LoggingMiddleware(http.HandlerFunc(handleCurrentlyPlaying)))
 	// Get current queue

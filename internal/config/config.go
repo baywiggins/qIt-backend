@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 // Define global variables for configuration
@@ -14,19 +16,30 @@ var (
     API_URL          string
     ClientSecret     string
     Scopes           string
+    DBName           string
+    AESKey           string
 )
 
 // init function to load environment variables
 func init() {
-    SpotifyAuthURL = os.Getenv("SPOTIFY_AUTH_URL")
+    err := godotenv.Load()
+
+    if err != nil {
+        fmt.Println("Unable to load dotenv")
+        os.Exit(1)
+    }
+
+    SpotifyAuthURL   = os.Getenv("SPOTIFY_AUTH_URL")
     SpotifyPlayerURL = os.Getenv("SPOTIFY_PLAYER_URL")
     SpotifySearchURL = os.Getenv("SPOTIFY_SEARCH_URL")
-    ClientID = os.Getenv("CLIENT_ID")
-    API_URL = os.Getenv("API_URL")
-    ClientSecret = os.Getenv("CLIENT_SECRET")
-    Scopes = os.Getenv("SCOPES")
+    ClientID         = os.Getenv("CLIENT_ID")
+    API_URL          = os.Getenv("API_URL")
+    ClientSecret     = os.Getenv("CLIENT_SECRET")
+    Scopes           = os.Getenv("SCOPES")
+    DBName           = os.Getenv("DB_NAME")
+    AESKey           = os.Getenv("AES_KEY")
 
-    envarList := [7]string{SpotifyAuthURL, SpotifyPlayerURL, SpotifySearchURL, ClientID, API_URL, ClientSecret, Scopes}
+    envarList := [9]string{SpotifyAuthURL, SpotifyPlayerURL, SpotifySearchURL, ClientID, API_URL, ClientSecret, Scopes, DBName, AESKey}
 
     for i := range envarList {
         if envarList[i] == "" {

@@ -1,14 +1,20 @@
 package server
 
 import (
+	"database/sql"
+	"log"
 	"net/http"
 
 	"github.com/baywiggins/qIt-backend/internal/config"
 )
 
-func StartServer() {
+func StartServer(db *sql.DB) error {
+	var err error;
 	// Add our API routes to the http handler
-	HandleRoutes()
+	HandleRoutes(db)
 	// Set our http server to listen and serve
-	http.ListenAndServe(config.API_URL, nil)
+	if err := http.ListenAndServe(config.API_URL, nil); err != nil {
+		log.Fatalf("server failed: %s", err)
+	}
+	return err
 }

@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -14,6 +15,8 @@ import (
 	"github.com/patrickmn/go-cache"
 
 	"github.com/baywiggins/qIt-backend/internal/config"
+	"github.com/baywiggins/qIt-backend/internal/models"
+	"github.com/baywiggins/qIt-backend/pkg/utils"
 )
 
 type SpotifyTokenResponse struct {
@@ -26,7 +29,7 @@ type SpotifyTokenResponse struct {
 
 var tokenCache = cache.New(3600*time.Second, 12*time.Hour)
 
-func GetSpotifyAuthURL() (string, error) {
+func GetSpotifyAuthURL(state string) (string, error) {
 	var err error;
 
 	apiURL := "http://" + config.API_URL
@@ -37,6 +40,7 @@ func GetSpotifyAuthURL() (string, error) {
 		"client_id": config.ClientID,
 		"response_type": "code",
 		"redirect_uri": apiURL + "/spotify/auth/callback",
+		"state": state,
 		"scope": config.Scopes,
 		"show_dialog": "true",
 	}
@@ -77,7 +81,7 @@ func GetAccessToken() (string, error) {
 	}
 }
 
-func GetAccessTokenFromSpotify(code string) error {
+func GetAccessTokenFromSpotify(code string, state string, db *sql.DB) error {
 	var err error;
 	// Get the URL to send POST request to
 	tokenURL := config.SpotifyAuthURL + "/api/token"
@@ -93,9 +97,26 @@ func GetAccessTokenFromSpotify(code string) error {
 		return fmt.Errorf("error in GetAccessTokenFromSpotify: '%s'", err.Error())
 	}
 
-	// Add to cache
-	tokenCache.Set("accessToken", tokenData.AccessToken, cache.DefaultExpiration)
-	tokenCache.Set("refreshToken", tokenData.RefreshToken, cache.NoExpiration)
+	encryptedAuthToken, err := utils.Encrypt(tokenData.AccessToken)
+	if err != nil {
+		return fmt.Errorf("error in GetAccessTokenFromSpotify: '%s'", err.Error())
+	}
+	encryptedRefreshToken, err := utils.Encrypt(tokenData.RefreshToken)
+	if err != nil {
+		return fmt.Errorf("error in GetAccessTokenFromSpotify: '%s'", err.Error())
+	}
+	// Add to database
+	sta := models.StateToAuth{
+		UserState: state,
+		AuthToken: encryptedAuthToken,
+		RefreshToken: encryptedRefreshToken,
+		ExpirationTime: time.Now().Add(time.Hour),
+	}
+	if err := models.InsertStateToAuth(db, sta); err != nil {
+		return fmt.Errorf("error in GetAccessTokenFromSpotify: '%s'", err.Error())
+	}
+	fmt.Println(tokenData.AccessToken)
+	fmt.Println(utils.Decrypt(encryptedAuthToken))
 	
 	return err
 }
