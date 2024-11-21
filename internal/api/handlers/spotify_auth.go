@@ -19,10 +19,6 @@ func HandleSpotifyAuthRoutes(db *sql.DB) {
 	http.Handle("GET /spotify/auth", middlewares.LoggingMiddleware(middlewares.AuthMiddleware(http.HandlerFunc(handleSpotifyAuth))))
 	// Handle our callback GET endpoint which the user is redirected to once authenticated
 	http.Handle("GET /spotify/auth/callback", middlewares.LoggingMiddleware(http.HandlerFunc(handler.handleSpotifyAuthCallBackGet)))
-
-
-	// For static image (checkmark)
-	http.Handle("/static/images/", http.StripPrefix("/static/images/", http.FileServer(http.Dir("static/images"))))
 }
 
 // Function to handle auth
@@ -31,15 +27,15 @@ func handleSpotifyAuth(w http.ResponseWriter, r *http.Request) {
 	// Get uuid from query string
 	state := r.URL.Query().Get("state")
 	if state == "" {
-		log.Printf("ERROR in handleSpotiftAuthCallBackGet: Unknown Error \n")
-		utils.RespondWithError(w, http.StatusBadRequest, "state not provided with request")
+		log.Printf("ERROR in handleSpotifyAuth: Unknown Error \n")
+		utils.RespondWithError(w, http.StatusBadRequest, "Error: state not provided with request")
 		return
 	}
 	// Create return mapping of our authentication URL
 	authURL["auth_url"], err = middlewares.GetSpotifyAuthURL(state)
 
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleSpotifyAuth: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSpotifyAuth: '%s' \n", err.Error()))
 		return
 	}
@@ -61,15 +57,15 @@ func (h *Handler) handleSpotifyAuthCallBackGet(w http.ResponseWriter, r *http.Re
 	errorCode := r.URL.Query().Get("error")
 	state := r.URL.Query().Get("state")
 	if authCode == "" && errorCode != ""{
-		log.Printf("ERROR in handleSpotiftAuthCallBackGet: '%s' \n", errorCode)
+		log.Printf("ERROR in handleSpotifyAuthCallBackGet: '%s' \n", errorCode)
 		utils.RespondWithError(w, http.StatusInternalServerError, errorCode)
 		return
 	} else if authCode == "" {
-		log.Printf("ERROR in handleSpotiftAuthCallBackGet: Unknown Error \n")
+		log.Printf("ERROR in handleSpotifyAuthCallBackGet: Unknown Error \n")
 		utils.RespondWithError(w, http.StatusInternalServerError, "Unknown Error")
 		return
 	} else if state == "" {
-		log.Printf("ERROR in handleSpotiftAuthCallBackGet: Unknown Error \n")
+		log.Printf("ERROR in handleSpotifyAuthCallBackGet: Unknown Error \n")
 		utils.RespondWithError(w, http.StatusInternalServerError, "Unknown Error")
 		return
 	}
@@ -77,8 +73,12 @@ func (h *Handler) handleSpotifyAuthCallBackGet(w http.ResponseWriter, r *http.Re
 	// Grab the access token using the auth code
 	err := middlewares.GetAccessTokenFromSpotify(authCode, state, h.DB)
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		log.Printf("ERROR in handleSpotifyAuthCallBackGet: %s \n", err)
+		statusCode := http.StatusInternalServerError
+		if err.Error() == "user must authenticate with spotify first" {
+			statusCode = http.StatusUnauthorized
+		}
+		utils.RespondWithError(w, statusCode, err.Error())
 		return
 	}
 

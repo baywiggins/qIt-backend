@@ -2,10 +2,10 @@ DROP TABLE IF EXISTS Users;
 DROP TABLE IF EXISTS State_to_auth;
 
 CREATE TABLE IF NOT EXISTS Users (
-  id                TEXT NOT NULL,
-  username          VARCHAR(128) NOT NULL,
+  id                TEXT UNIQUE NOT NULL,
+  username          VARCHAR(128) UNIQUE NOT NULL,
   pass              VARCHAR(255) NOT NULL,
-  user_state        VARCHAR(128) NOT NULL,
+  user_state        VARCHAR(128) UNIQUE NOT NULL,
   PRIMARY KEY (`id`)
   FOREIGN KEY (user_state) REFERENCES State_to_Code(user_state)
 );

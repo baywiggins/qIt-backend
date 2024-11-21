@@ -38,14 +38,14 @@ func handleCurrentlyPlaying(w http.ResponseWriter, r *http.Request) {
 	// Parse our request URL
 	sURL, err := url.Parse(config.SpotifyPlayerURL + "/currently-playing")
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleCurrentlyPlaying: '%s' \n", err.Error()))
+		log.Printf("ERROR in handleCurrentlyPlaying: %s \n", err)
+		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error: '%s' \n", err.Error()))
 		return
 	}
 	// Grab our access token from middleware cache
 	accessToken, err := middlewares.GetAccessToken()
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleCurrentlyPlaying: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleCurrentlyPlaying: '%s' \n", err.Error()))
 		return
 	}
@@ -60,14 +60,14 @@ func handleCurrentlyPlaying(w http.ResponseWriter, r *http.Request) {
 			utils.RespondWithStatusUnavailable(w)
 			return
 		}
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleCurrentlyPlaying: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleCurrentlyPlaying: '%s' \n", err.Error()))
 		return
 	}
 
 	currentlyPlaying, err := services.UnmarshalJSON[models.CurrentlyPlaying](body)
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleCurrentlyPlaying: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleCurrentlyPlaying: '%s' \n", err.Error()))
 		return
 	}
@@ -77,7 +77,7 @@ func handleCurrentlyPlaying(w http.ResponseWriter, r *http.Request) {
 	jsonEncoder := json.NewEncoder(w)
 	err = jsonEncoder.Encode(currentlyPlaying)
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleCurrentlyPlaying: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleCurrentlyPlaying: '%s' \n", err.Error()))
 		return
 	}
@@ -88,14 +88,14 @@ func handleGetQueue(w http.ResponseWriter, r *http.Request) {
 	// Parse our request URL
 	sURL, err := url.Parse(config.SpotifyPlayerURL + "/queue")
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleGetQueue: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleGetQueue: '%s' \n", err.Error()))
 		return
 	}
 	// Grab our access token from middleware cache
 	accessToken, err := middlewares.GetAccessToken()
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleGetQueue: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleGetQueue: '%s' \n", err.Error()))
 		return
 	}
@@ -111,14 +111,14 @@ func handleGetQueue(w http.ResponseWriter, r *http.Request) {
 			utils.RespondWithStatusUnavailable(w)
 			return
 		}
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleGetQueue: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByTrack: '%s' \n", err.Error()))
 		return
 	}
 	// Unmarshal our data to return to caller
 	currentQueue, err := services.UnmarshalJSON[models.CurrentQueue](body)
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleGetQueue: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleGetQueue: '%s' \n", err.Error()))
 		return
 	}
@@ -128,7 +128,7 @@ func handleGetQueue(w http.ResponseWriter, r *http.Request) {
 	jsonEncoder := json.NewEncoder(w)
 	err = jsonEncoder.Encode(currentQueue)
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleGetQueue: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleGetQueue: '%s' \n", err.Error()))
 		return
 	}
@@ -152,14 +152,14 @@ func handleSearchByTrack(w http.ResponseWriter, r *http.Request) {
 	// Parse our request URL
 	sURL, err := url.Parse(config.SpotifySearchURL)
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleSearchByTrack: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByTrack: '%s' \n", err.Error()))
 		return
 	}
 	// Grab our access token from middleware cache
 	accessToken, err := middlewares.GetAccessToken()
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleSearchByTrack: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByTrack: '%s' \n", err.Error()))
 		return
 	}
@@ -180,14 +180,14 @@ func handleSearchByTrack(w http.ResponseWriter, r *http.Request) {
 			utils.RespondWithStatusUnavailable(w)
 			return
 		}
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleSearchByTrack: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByTrack: '%s' \n", err.Error()))
 		return
 	}
 
 	searchByTrack, err := services.UnmarshalJSON[models.SearchByTrack](body)
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleSearchByTrack: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByTrack: '%s' \n", err.Error()))
 		return
 	}
@@ -198,7 +198,7 @@ func handleSearchByTrack(w http.ResponseWriter, r *http.Request) {
 	jsonEncoder := json.NewEncoder(w)
 	err = jsonEncoder.Encode(searchByTrack)
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleSearchByTrack: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByTrack: '%s' \n", err.Error()))
 		return
 	}
@@ -215,14 +215,14 @@ func handleSearchByURL(w http.ResponseWriter, r *http.Request) {
 	// Parse request URL
 	sURL, err := url.Parse(urlQueryParam)
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleSearchByURL: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByURL: '%s' \n", err.Error()))
 		return
 	}
 	// Grab our access token from middleware cache
 	accessToken, err := middlewares.GetAccessToken()
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleSearchByURL: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByURL: '%s' \n", err.Error()))
 		return
 	}
@@ -237,13 +237,13 @@ func handleSearchByURL(w http.ResponseWriter, r *http.Request) {
 			utils.RespondWithStatusUnavailable(w)
 			return
 		}
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleSearchByURL: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByURL: '%s' \n", err.Error()))
 		return
 	}
 	searchByURL, err := services.UnmarshalJSON[models.SearchByTrack](body)
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleSearchByURL: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByURL: '%s' \n", err.Error()))
 		return
 	}
@@ -253,7 +253,7 @@ func handleSearchByURL(w http.ResponseWriter, r *http.Request) {
 	jsonEncoder := json.NewEncoder(w)
 	err = jsonEncoder.Encode(searchByURL)
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleSearchByURL: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByURL: '%s' \n", err.Error()))
 		return
 	}
@@ -264,14 +264,14 @@ func handlePlay(w http.ResponseWriter, r *http.Request) {
 	// Parse our request URL
 	sURL, err := url.Parse(config.SpotifyPlayerURL + "/play")
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handlePlay: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handlePlay: '%s' \n", err.Error()))
 		return
 	}
 	// Grab our access token from middleware cache
 	accessToken, err := middlewares.GetAccessToken()
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handlePlay: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handlePlay: '%s' \n", err.Error()))
 		return
 	}
@@ -287,7 +287,7 @@ func handlePlay(w http.ResponseWriter, r *http.Request) {
 			utils.RespondWithStatusUnavailable(w)
 			return
 		}
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handlePlay: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handlePlay: '%s' \n", err.Error()))
 		return
 	}
@@ -298,14 +298,14 @@ func handlePause(w http.ResponseWriter, r *http.Request) {
 	// Parse our request URL
 	sURL, err := url.Parse(config.SpotifyPlayerURL + "/pause")
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handlePause: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handlePause: '%s' \n", err.Error()))
 		return
 	}
 	// Grab our access token from middleware cache
 	accessToken, err := middlewares.GetAccessToken()
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handlePause: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handlePause: '%s' \n", err.Error()))
 		return
 	}
@@ -321,7 +321,7 @@ func handlePause(w http.ResponseWriter, r *http.Request) {
 			utils.RespondWithStatusUnavailable(w)
 			return
 		}
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handlePause: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handlePause: '%s' \n", err.Error()))
 		return
 	}
@@ -338,14 +338,14 @@ func handleAddToQueue(w http.ResponseWriter, r *http.Request) {
 	// Parse our request URL
 	sURL, err := url.Parse(config.SpotifyPlayerURL + "/queue")
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleAddToQueue: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleAddToQueue: '%s' \n", err.Error()))
 		return
 	}
 	// Grab our access token from middleware cache
 	accessToken, err := middlewares.GetAccessToken()
 	if err != nil {
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleAddToQueue: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleAddToQueue: '%s' \n", err.Error()))
 		return
 	}
@@ -364,7 +364,7 @@ func handleAddToQueue(w http.ResponseWriter, r *http.Request) {
 			utils.RespondWithStatusUnavailable(w)
 			return
 		}
-		log.Printf("ERROR: %s \n", err)
+		log.Printf("ERROR in handleAddToQueue: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleAddToQueue: '%s' \n", err.Error()))
 		return
 	}
