@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 )
 
@@ -28,4 +29,14 @@ func RespondWithStatusUnavailable(w http.ResponseWriter) {
 	// Create JSON encoder and encode our currentlyPlaying variable
 	jsonEncoder := json.NewEncoder(w)
 	jsonEncoder.Encode(map[string]string{"message": "send another request"})
+}
+
+// handleSpotifyError centralizes error handling for Spotify API calls.
+func HandleSpotifyError(w http.ResponseWriter, err error) {
+	log.Printf("Spotify API error: %s\n", err)
+	if err.Error() == "invalid access token" {
+		RespondWithStatusUnavailable(w)
+	} else {
+		RespondWithError(w, http.StatusInternalServerError, "Spotify API error: "+err.Error())
+	}
 }

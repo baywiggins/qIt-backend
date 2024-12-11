@@ -64,7 +64,7 @@ func (h *Handler) handleCreateAccount(w http.ResponseWriter, r *http.Request) {
 	if err := models.InsertUser(h.DB, newUser); err != nil {
 		log.Printf("ERROR in handleCreateAccount: %s \n", err)
 		if err.Error() == "UNIQUE constraint failed: Users.username" || err.Error() == "UNIQUE constraint failed: Users.user_state" {
-			utils.RespondWithError(w, http.StatusBadRequest, "user already exists")
+			utils.RespondWithError(w, http.StatusBadRequest, "user or state already exists")
 		return
 		}
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error: '%s' \n", err.Error()))
@@ -90,8 +90,6 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	var loginData UserData;
 
-	fmt.Println("reached 1")
-
 	err = json.NewDecoder(r.Body).Decode(&loginData)
 	if err != nil {
 		log.Printf("ERROR in handleLogin: %s \n", err)
@@ -99,7 +97,6 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(loginData)
 
 	// Get user data from the db
 	username := loginData.Username
@@ -113,7 +110,21 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, statusCode, fmt.Sprintf("Error in handleLogin: '%s' \n", err.Error()))
 		return
 	}
-	fmt.Println("reached 1")
+
+	// Ensure the user finished creating their account
+	if (user.FinishedCreating == 0) {
+		// They never finished, delete account and return 404
+		err = models.DeleteUserByID(h.DB, user.ID)
+		if err != nil {
+			log.Printf("ERROR in handleSignIn: %s \n", err)
+			utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSignIn: '%s' \n", err.Error()))
+			return
+		}
+		log.Printf("ERROR in handleSignIn: '%s' not found \n", user.Username)
+		utils.RespondWithError(w, http.StatusNotFound, "Error: 'user not found'")
+		return
+	}
+
 	// Compare given password to hashed password stored in db
 	matches := utils.DoPasswordsMatch(user.Password, loginData.Password)
 	

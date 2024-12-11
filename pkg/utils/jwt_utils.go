@@ -27,7 +27,7 @@ func GenerateJWTToken(userID string) (string, error) {
 	return token.SignedString(SecretKey)
 }
 
-func ValidateJWTToken(tokenString string) (*Claims, error) {
+func ValidateJWTToken(tokenString string, userID string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(t *jwt.Token) (interface{}, error) {
 		return SecretKey, nil
 	})
@@ -40,5 +40,9 @@ func ValidateJWTToken(tokenString string) (*Claims, error) {
 	if !ok || !token.Valid {
 		return nil, errors.New("invalid token")
 	}
+	if claims.UserID != userID {
+		return nil, errors.New("unauthorized user")
+	}
+
 	return claims, nil
 }

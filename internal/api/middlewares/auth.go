@@ -17,10 +17,21 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			utils.RespondWithError(w, http.StatusUnauthorized, fmt.Sprintf("Error: '%s'", errors.New("unauthorized")))
 			return
 		}
-		_, err := utils.ValidateJWTToken(tokenString)
+
+		userID := r.Header.Get("uuid")
+		if userID == "" {
+			log.Printf("ERROR in AuthMiddleware: %s \n", errors.New("unauthorized"))
+			utils.RespondWithError(w, http.StatusUnauthorized, fmt.Sprintf("Error: '%s'", errors.New("unauthorized, missing uuid")))
+			return
+		}
+		_, err := utils.ValidateJWTToken(tokenString, userID)
 		if err != nil {
+			statusCode := http.StatusUnauthorized
+			if err.Error() != "invalid token" || err.Error() != "unauthorized user" {
+				statusCode = http.StatusInternalServerError
+			}
 			log.Printf("ERROR in AuthMiddleware: %s \n", err)
-				utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error: '%s' \n", err.Error()))
+				utils.RespondWithError(w, statusCode, fmt.Sprintf("Error: '%s' \n", err.Error()))
 				return
 		}
 

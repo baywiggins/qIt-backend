@@ -15,63 +15,76 @@ import (
 	"github.com/baywiggins/qIt-backend/pkg/utils"
 )
 
-
-func HandleSpotifyControllerRoutes(db *sql.DB) {
-	// Get currently playing track
-	http.Handle("GET /spotify/currently-playing", middlewares.LoggingMiddleware(http.HandlerFunc(handleCurrentlyPlaying)))
-	// Get current queue
-	http.Handle("GET /spotify/queue", middlewares.LoggingMiddleware(http.HandlerFunc(handleGetQueue)))
-	// Get search by track
-	http.Handle("GET /spotify/search/track", middlewares.LoggingMiddleware(http.HandlerFunc(handleSearchByTrack)))
-	// Get search by URL (next/previous page of results)
-	http.Handle("GET /spotify/search/url", middlewares.LoggingMiddleware(http.HandlerFunc(handleSearchByURL)))
-	// Play
-	http.Handle("GET /spotify/play", middlewares.LoggingMiddleware(http.HandlerFunc(handlePlay)))
-	// Pause
-	http.Handle("GET /spotify/pause", middlewares.LoggingMiddleware(http.HandlerFunc(handlePause)))
-	// Add to queue
-	http.Handle("GET /spotify/add-to-queue", middlewares.LoggingMiddleware(http.HandlerFunc(handleAddToQueue)))
+// SpotifyRequestParams encapsulates common parameters for Spotify API requests.
+type SpotifyRequestParams struct {
+	Path        string
+	Method      string
+	QueryParams map[string]string
+	Headers     map[string]string
 }
 
-func handleCurrentlyPlaying(w http.ResponseWriter, r *http.Request) {
-	var err error;
-	// Parse our request URL
-	sURL, err := url.Parse(config.SpotifyPlayerURL + "/currently-playing")
-	if err != nil {
-		log.Printf("ERROR in handleCurrentlyPlaying: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error: '%s' \n", err.Error()))
-		return
-	}
-	// Grab our access token from middleware cache
-	accessToken, err := middlewares.GetAccessToken()
-	if err != nil {
-		log.Printf("ERROR in handleCurrentlyPlaying: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleCurrentlyPlaying: '%s' \n", err.Error()))
-		return
-	}
-	// Add our headers in a map
-	headers := map[string]string {
-		"Authorization": "Bearer "+accessToken,
-	}
-	// Call our spotify API function to get the response body
-	body, err := services.SendSpotifyPlayerRequest(*sURL, http.MethodGet, nil, headers)
-	if err != nil {
-		if err.Error() == "invalid access token" {
-			utils.RespondWithStatusUnavailable(w)
+// HandleSpotifyControllerRoutes registers all Spotify-related routes.
+func HandleSpotifyControllerRoutes(db *sql.DB) {
+	handler := &Handler{DB: db}
+
+	http.Handle("/spotify/currently-playing", middlewares.LoggingMiddleware(http.HandlerFunc(handler.withSpotify(handler.handleCurrentlyPlaying, "/currently-playing"))))
+	http.Handle("/spotify/queue", middlewares.LoggingMiddleware(http.HandlerFunc(handler.withSpotify(handler.handleGetQueue, "/queue"))))
+	http.Handle("/spotify/search/track", middlewares.LoggingMiddleware(http.HandlerFunc(handler.withSpotify(handler.handleSearchByTrack, ""))))
+	http.Handle("/spotify/search/url", middlewares.LoggingMiddleware(http.HandlerFunc(handler.withSpotify(handler.handleSearchByURL, ""))))
+	http.Handle("/spotify/play", middlewares.LoggingMiddleware(middlewares.AuthMiddleware(http.HandlerFunc(handler.withSpotify(handler.handlePlay, "/play")))))
+	http.Handle("/spotify/pause", middlewares.LoggingMiddleware(middlewares.AuthMiddleware(http.HandlerFunc(handler.withSpotify(handler.handlePause, "/pause")))))
+	http.Handle("/spotify/add-to-queue", middlewares.LoggingMiddleware(http.HandlerFunc(handler.withSpotify(handler.handleAddToQueue, "/queue"))))
+}
+
+// withSpotify is a wrapper for Spotify API endpoints with common setup.
+func (h *Handler) withSpotify(handlerFunc func(http.ResponseWriter, *http.Request, SpotifyRequestParams), path string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accessToken, err := middlewares.GetAccessToken()
+		if err != nil {
+			log.Printf("Error in withSpotify: '%s'", err.Error())
+			utils.RespondWithError(w, http.StatusInternalServerError, "Failed to get access token")
 			return
 		}
-		log.Printf("ERROR in handleCurrentlyPlaying: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleCurrentlyPlaying: '%s' \n", err.Error()))
+
+		params := SpotifyRequestParams{
+			Path:    path,
+			Method:  http.MethodGet,
+			Headers: map[string]string{"Authorization": "Bearer " + accessToken},
+		}
+		handlerFunc(w, r, params)
+	}
+}
+
+// sendSpotifyRequest is a reusable helper to interact with the Spotify API.
+func sendSpotifyRequest(params SpotifyRequestParams, search bool) ([]byte, error) {
+	baseURL := config.SpotifyPlayerURL
+	if (search) {
+		baseURL = config.SpotifySearchURL
+	}
+	sURL, err := url.Parse(baseURL + params.Path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse URL: %w", err)
+	}
+
+	fmt.Println(sURL)
+
+	return services.SendSpotifyPlayerRequest(*sURL, params.Method, params.QueryParams, params.Headers)
+}
+
+// handleCurrentlyPlaying handles the currently playing endpoint.
+func (h *Handler) handleCurrentlyPlaying(w http.ResponseWriter, r *http.Request, params SpotifyRequestParams) {
+	body, err := sendSpotifyRequest(params, false)
+	if err != nil {
+		utils.HandleSpotifyError(w, err)
 		return
 	}
 
-	currentlyPlaying, err := services.UnmarshalJSON[models.CurrentlyPlaying](body)
-	if err != nil {
-		log.Printf("ERROR in handleCurrentlyPlaying: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleCurrentlyPlaying: '%s' \n", err.Error()))
+	var currentlyPlaying models.CurrentlyPlaying
+	if err := json.Unmarshal(body, &currentlyPlaying); err != nil {
+		utils.HandleSpotifyError(w, err)
 		return
 	}
-	// Set header as JSON
+
 	w.Header().Set("Content-Type", "application/json")
 	// Create JSON encoder and encode our currentlyPlaying variable
 	jsonEncoder := json.NewEncoder(w)
@@ -83,289 +96,118 @@ func handleCurrentlyPlaying(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleGetQueue(w http.ResponseWriter, r *http.Request) {
-	var err error;
-	// Parse our request URL
-	sURL, err := url.Parse(config.SpotifyPlayerURL + "/queue")
+// handleGetQueue handles the queue retrieval endpoint.
+func (h *Handler) handleGetQueue(w http.ResponseWriter, r *http.Request, params SpotifyRequestParams) {
+	body, err := sendSpotifyRequest(params, false)
 	if err != nil {
-		log.Printf("ERROR in handleGetQueue: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleGetQueue: '%s' \n", err.Error()))
-		return
-	}
-	// Grab our access token from middleware cache
-	accessToken, err := middlewares.GetAccessToken()
-	if err != nil {
-		log.Printf("ERROR in handleGetQueue: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleGetQueue: '%s' \n", err.Error()))
+		utils.HandleSpotifyError(w, err)
 		return
 	}
 
-	// Add our headers in a map
-	headers := map[string]string {
-		"Authorization": "Bearer "+accessToken,
-	}
-	// Call our spotify API function to get the response body
-	body, err := services.SendSpotifyPlayerRequest(*sURL, http.MethodGet, nil, headers)
-	if err != nil {
-		if err.Error() == "invalid access token" {
-			utils.RespondWithStatusUnavailable(w)
-			return
-		}
-		log.Printf("ERROR in handleGetQueue: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByTrack: '%s' \n", err.Error()))
-		return
-	}
-	// Unmarshal our data to return to caller
 	currentQueue, err := services.UnmarshalJSON[models.CurrentQueue](body)
 	if err != nil {
-		log.Printf("ERROR in handleGetQueue: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleGetQueue: '%s' \n", err.Error()))
+		utils.HandleSpotifyError(w, err)
 		return
 	}
-	// Set header as JSON
+
 	w.Header().Set("Content-Type", "application/json")
-	// Create JSON encoder and encode our currentlyPlaying variable
-	jsonEncoder := json.NewEncoder(w)
-	err = jsonEncoder.Encode(currentQueue)
-	if err != nil {
-		log.Printf("ERROR in handleGetQueue: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleGetQueue: '%s' \n", err.Error()))
-		return
+	if err := json.NewEncoder(w).Encode(currentQueue); err != nil {
+		log.Printf("ERROR in handleGetQueue: %s\n", err)
+		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleGetQueue: '%s'\n", err.Error()))
 	}
 }
 
-func handleSearchByTrack(w http.ResponseWriter, r *http.Request) {
-	var err error;
-	// Get the track from the GET request query param
+// handleSearchByTrack handles track search requests.
+func (h *Handler) handleSearchByTrack(w http.ResponseWriter, r *http.Request, params SpotifyRequestParams) {
 	track := r.URL.Query().Get("track")
 	if track == "" {
-		log.Println("ERROR: 'track' was null", )
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByTrack: '%s' \n", fmt.Errorf("'track' was null")))
+		utils.RespondWithError(w, http.StatusBadRequest, "Missing 'track' parameter")
 		return
 	}
-	limit := r.URL.Query().Get("limit")
-	if limit == "" {
-		log.Println("ERROR: 'limit' was null", )
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByTrack: '%s' \n", fmt.Errorf("'limit' was null")))
-		return
-	}
-	// Parse our request URL
-	sURL, err := url.Parse(config.SpotifySearchURL)
-	if err != nil {
-		log.Printf("ERROR in handleSearchByTrack: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByTrack: '%s' \n", err.Error()))
-		return
-	}
-	// Grab our access token from middleware cache
-	accessToken, err := middlewares.GetAccessToken()
-	if err != nil {
-		log.Printf("ERROR in handleSearchByTrack: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByTrack: '%s' \n", err.Error()))
-		return
-	}
-	// Add our query params in a map
-	queryParams := map[string]string {
-		"q": "track:" + track,
+	params.QueryParams = map[string]string{
+		"q":    "track:" + track,
 		"type": "track",
-		"limit": limit,
+		"limit": r.URL.Query().Get("limit"),
 	}
-	// Add our headers in a map
-	headers := map[string]string {
-		"Authorization": "Bearer "+accessToken,
-	}
-	// Call our spotify API function to get the response body
-	body, err := services.SendSpotifyPlayerRequest(*sURL, http.MethodGet, queryParams, headers)
+	body, err := sendSpotifyRequest(params, true)
 	if err != nil {
-		if err.Error() == "invalid access token" {
-			utils.RespondWithStatusUnavailable(w)
-			return
-		}
-		log.Printf("ERROR in handleSearchByTrack: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByTrack: '%s' \n", err.Error()))
+		utils.HandleSpotifyError(w, err)
 		return
 	}
 
 	searchByTrack, err := services.UnmarshalJSON[models.SearchByTrack](body)
 	if err != nil {
-		log.Printf("ERROR in handleSearchByTrack: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByTrack: '%s' \n", err.Error()))
+		utils.HandleSpotifyError(w, err)
 		return
 	}
 
-	// Set header as JSON
 	w.Header().Set("Content-Type", "application/json")
-	// Create JSON encoder and encode our currentlyPlaying variable
-	jsonEncoder := json.NewEncoder(w)
-	err = jsonEncoder.Encode(searchByTrack)
-	if err != nil {
-		log.Printf("ERROR in handleSearchByTrack: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByTrack: '%s' \n", err.Error()))
-		return
+	if err := json.NewEncoder(w).Encode(searchByTrack); err != nil {
+		log.Printf("ERROR in handleSearchByTrack: %s\n", err)
+		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByTrack: '%s'\n", err.Error()))
 	}
 }
 
-func handleSearchByURL(w http.ResponseWriter, r *http.Request) {
-	// Get the URL from the GET request query param
+// handleSearchByURL handles searches by URL.
+func (h *Handler) handleSearchByURL(w http.ResponseWriter, r *http.Request, params SpotifyRequestParams) {
 	urlQueryParam := r.URL.Query().Get("url")
 	if urlQueryParam == "" {
-		log.Println("ERROR: 'urlQueryParam' was null", )
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByURL: '%s' \n", fmt.Errorf("'urlQueryParam' was null")))
+		utils.RespondWithError(w, http.StatusBadRequest, "Missing 'url' parameter")
 		return
 	}
-	// Parse request URL
-	sURL, err := url.Parse(urlQueryParam)
+	parsedURL, err := url.Parse(urlQueryParam)
 	if err != nil {
-		log.Printf("ERROR in handleSearchByURL: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByURL: '%s' \n", err.Error()))
+		utils.RespondWithError(w, http.StatusBadRequest, "Invalid 'url' parameter")
 		return
 	}
-	// Grab our access token from middleware cache
-	accessToken, err := middlewares.GetAccessToken()
+	params.Path = parsedURL.Path
+	body, err := sendSpotifyRequest(params, true)
 	if err != nil {
-		log.Printf("ERROR in handleSearchByURL: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByURL: '%s' \n", err.Error()))
+		utils.HandleSpotifyError(w, err)
 		return
 	}
-	// Add our headers in a map
-	headers := map[string]string {
-		"Authorization": "Bearer "+accessToken,
-	}
-	// Call our spotify API function to get the response body
-	body, err := services.SendSpotifyPlayerRequest(*sURL, http.MethodGet, nil, headers)
-	if err != nil {
-		if err.Error() == "invalid access token" {
-			utils.RespondWithStatusUnavailable(w)
-			return
-		}
-		log.Printf("ERROR in handleSearchByURL: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByURL: '%s' \n", err.Error()))
-		return
-	}
+
 	searchByURL, err := services.UnmarshalJSON[models.SearchByTrack](body)
 	if err != nil {
-		log.Printf("ERROR in handleSearchByURL: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByURL: '%s' \n", err.Error()))
+		utils.HandleSpotifyError(w, err)
 		return
 	}
-	// Set header as JSON
+
 	w.Header().Set("Content-Type", "application/json")
-	// Create JSON encoder and encode our currentlyPlaying variable
-	jsonEncoder := json.NewEncoder(w)
-	err = jsonEncoder.Encode(searchByURL)
-	if err != nil {
-		log.Printf("ERROR in handleSearchByURL: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByURL: '%s' \n", err.Error()))
-		return
+	if err := json.NewEncoder(w).Encode(searchByURL); err != nil {
+		log.Printf("ERROR in handleSearchByURL: %s\n", err)
+		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSearchByURL: '%s'\n", err.Error()))
 	}
 }
 
-func handlePlay(w http.ResponseWriter, r *http.Request) {
-	var err error;
-	// Parse our request URL
-	sURL, err := url.Parse(config.SpotifyPlayerURL + "/play")
-	if err != nil {
-		log.Printf("ERROR in handlePlay: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handlePlay: '%s' \n", err.Error()))
-		return
-	}
-	// Grab our access token from middleware cache
-	accessToken, err := middlewares.GetAccessToken()
-	if err != nil {
-		log.Printf("ERROR in handlePlay: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handlePlay: '%s' \n", err.Error()))
-		return
-	}
-	// ADd our headers in a map
-	headers := map[string]string {
-		"Authorization": "Bearer "+accessToken,
-		"Content-Type": "application/json",
-	}
-	// Call spotify API function to get response body
-	_, err = services.SendSpotifyPlayerRequest(*sURL, http.MethodPut, nil, headers)
-	if err != nil {
-		if err.Error() == "invalid access token" {
-			utils.RespondWithStatusUnavailable(w)
-			return
-		}
-		log.Printf("ERROR in handlePlay: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handlePlay: '%s' \n", err.Error()))
-		return
+// handlePlay handles playback start.
+func (h *Handler) handlePlay(w http.ResponseWriter, r *http.Request, params SpotifyRequestParams) {
+	params.Method = http.MethodPut
+	params.Headers["Content-Type"] = "application/json"
+	if _, err := sendSpotifyRequest(params, false); err != nil {
+		utils.HandleSpotifyError(w, err)
 	}
 }
 
-func handlePause(w http.ResponseWriter, r *http.Request) {
-	var err error;
-	// Parse our request URL
-	sURL, err := url.Parse(config.SpotifyPlayerURL + "/pause")
-	if err != nil {
-		log.Printf("ERROR in handlePause: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handlePause: '%s' \n", err.Error()))
-		return
-	}
-	// Grab our access token from middleware cache
-	accessToken, err := middlewares.GetAccessToken()
-	if err != nil {
-		log.Printf("ERROR in handlePause: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handlePause: '%s' \n", err.Error()))
-		return
-	}
-	// ADd our headers in a map
-	headers := map[string]string {
-		"Authorization": "Bearer "+accessToken,
-		"Content-Type": "application/json",
-	}
-	// Call spotify API function to get response body
-	_, err = services.SendSpotifyPlayerRequest(*sURL, http.MethodPut, nil, headers)
-	if err != nil {
-		if err.Error() == "invalid access token" {
-			utils.RespondWithStatusUnavailable(w)
-			return
-		}
-		log.Printf("ERROR in handlePause: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handlePause: '%s' \n", err.Error()))
-		return
+// handlePause handles playback pause.
+func (h *Handler) handlePause(w http.ResponseWriter, r *http.Request, params SpotifyRequestParams) {
+	params.Method = http.MethodPut
+	params.Headers["Content-Type"] = "application/json"
+	if _, err := sendSpotifyRequest(params, false); err != nil {
+		utils.HandleSpotifyError(w, err)
 	}
 }
 
-func handleAddToQueue(w http.ResponseWriter, r *http.Request) {
-	var err error;
+// handleAddToQueue adds a track to the Spotify queue.
+func (h *Handler) handleAddToQueue(w http.ResponseWriter, r *http.Request, params SpotifyRequestParams) {
 	trackURI := r.URL.Query().Get("track_uri")
 	if trackURI == "" {
-		log.Println("ERROR: 'trackURI' was null", )
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleAddToQueue: '%s' \n", fmt.Errorf("'urlQueryParam' was null")))
+		utils.RespondWithError(w, http.StatusBadRequest, "Missing 'track_uri' parameter")
 		return
 	}
-	// Parse our request URL
-	sURL, err := url.Parse(config.SpotifyPlayerURL + "/queue")
-	if err != nil {
-		log.Printf("ERROR in handleAddToQueue: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleAddToQueue: '%s' \n", err.Error()))
-		return
-	}
-	// Grab our access token from middleware cache
-	accessToken, err := middlewares.GetAccessToken()
-	if err != nil {
-		log.Printf("ERROR in handleAddToQueue: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleAddToQueue: '%s' \n", err.Error()))
-		return
-	}
-	// Add our headers in a map
-	headers := map[string]string {
-		"Authorization": "Bearer "+accessToken,
-	}
-	// Add our query params in a map
-	queryParams := map[string]string {
-		"uri": trackURI,
-	}
-	// Call spotify API function to get response body
-	_, err = services.SendSpotifyPlayerRequest(*sURL, http.MethodPost, queryParams, headers)
-	if err != nil {
-		if err.Error() == "invalid access token" {
-			utils.RespondWithStatusUnavailable(w)
-			return
-		}
-		log.Printf("ERROR in handleAddToQueue: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleAddToQueue: '%s' \n", err.Error()))
-		return
+	params.QueryParams = map[string]string{"uri": trackURI}
+	params.Method = http.MethodPost
+	if _, err := sendSpotifyRequest(params, false); err != nil {
+		utils.HandleSpotifyError(w, err)
 	}
 }

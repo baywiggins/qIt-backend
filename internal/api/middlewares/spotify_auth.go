@@ -45,6 +45,8 @@ func GetSpotifyAuthURL(state string) (string, error) {
 		"show_dialog": "true",
 	}
 
+	fmt.Println(params)
+
 	u, err := url.Parse(authURL)
 	if err != nil {
 		return "", fmt.Errorf("error in GetSpotifyAuthURL: '%s'", err.Error())
@@ -55,6 +57,8 @@ func GetSpotifyAuthURL(state string) (string, error) {
 		q.Set(k, v)
 	}
 	u.RawQuery = q.Encode()
+
+	fmt.Println("auth url: " + u.String())
 
 	return u.String(), err
 }
@@ -97,6 +101,9 @@ func GetAccessTokenFromSpotify(code string, state string, db *sql.DB) error {
 		return fmt.Errorf("error in GetAccessTokenFromSpotify: '%s'", err.Error())
 	}
 
+	tokenCache.Set("accessToken", tokenData.AccessToken, cache.DefaultExpiration)
+	tokenCache.Set("refreshToken", tokenData.RefreshToken, cache.DefaultExpiration)
+
 	encryptedAuthToken, err := utils.Encrypt(tokenData.AccessToken)
 	if err != nil {
 		return fmt.Errorf("error in GetAccessTokenFromSpotify: '%s'", err.Error())
@@ -115,8 +122,9 @@ func GetAccessTokenFromSpotify(code string, state string, db *sql.DB) error {
 	if err := models.InsertStateToAuth(db, sta); err != nil {
 		return fmt.Errorf("error in GetAccessTokenFromSpotify: '%s'", err.Error())
 	}
-	fmt.Println(tokenData.AccessToken)
-	fmt.Println(utils.Decrypt(encryptedAuthToken))
+	
+	// If token obtained successfully, update user row to reflect account creation finish
+	models.UpdateCreationStatusByState(db, state)
 	
 	return err
 }

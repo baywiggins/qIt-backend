@@ -42,6 +42,11 @@ func SendSpotifyPlayerRequest(u url.URL, httpMethod string, queryParams map[stri
 		return nil, errors.New("invalid access token")
 	}
 
+	// Check for anything else
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("unexpected status code from spotify: %d", resp.StatusCode)
+	}
+
 	// Read response body data
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
