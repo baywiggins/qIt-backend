@@ -1,6 +1,13 @@
 package models
 
 // Structs for demarshaling spotify responses
+type PlaybackState struct {
+	CurrentlyPlayingType string `json:"currently_playing_type"`
+	IsPlaying bool `json:"is_playing"`
+	Item Item `json:"item"`
+	Progress uint32 `json:"progress_ms"`
+}
+
 type CurrentlyPlaying struct {
 	Item Item `json:"item"`
 	Progress uint32 `json:"progress_ms"`

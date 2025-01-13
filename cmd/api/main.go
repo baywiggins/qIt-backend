@@ -7,6 +7,7 @@ import (
 	"github.com/baywiggins/qIt-backend/internal/config"
 	"github.com/baywiggins/qIt-backend/internal/db"
 	"github.com/baywiggins/qIt-backend/internal/server"
+	"github.com/baywiggins/qIt-backend/internal/server/pubsub"
 )
 
 func main() {
@@ -34,5 +35,6 @@ func main() {
                                                     `)
 		
 	// Call our function to start the server
+	go pubsub.RunWebSocket()
 	server.StartServer(database)
 }

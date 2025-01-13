@@ -32,6 +32,8 @@ func HandleAuthRoutes(db *sql.DB) {
 	http.Handle("POST /account/login", middlewares.LoggingMiddleware(http.HandlerFunc(handler.handleLogin)))
 	// Handle test auth endpoint to ensure users got a valid token
 	http.Handle("GET /account/test-auth", middlewares.LoggingMiddleware(middlewares.AuthMiddleware(http.HandlerFunc(handleTestAuth))))
+	// Handle refreshing JWT token
+	http.Handle("POST /account/refresh-token", middlewares.LoggingMiddleware(http.HandlerFunc(handler.handleRefreshToken)))
 }
 
 func (h *Handler) handleCreateAccount(w http.ResponseWriter, r *http.Request) {
@@ -43,6 +45,18 @@ func (h *Handler) handleCreateAccount(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("ERROR in handleCreateAccount: %s \n", err)
 		utils.RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Error in handleCreateAccount: '%s' \n", err.Error()))
+		return
+	}
+
+	if userData.Username == "" || userData.Password == "" {
+		log.Printf("ERROR in handleCreateAccount: %s \n", err)
+		utils.RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Error in handleCreateAccount: '%s' \n", "missing username or password"))
+		return
+	}
+
+	if userData.UserState == "" {
+		log.Printf("ERROR in handleCreateAccount: %s \n", err)
+		utils.RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Error in handleCreateAccount: '%s' \n", "missing state"))
 		return
 	}
 
@@ -71,7 +85,13 @@ func (h *Handler) handleCreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := utils.GenerateJWTToken(userID)
+	token, exp, err := utils.GenerateJWTToken(userID)
+	if err != nil {
+		log.Printf("ERROR in handleCreateAccount: %s \n", err)
+		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleCreateAccount: '%s' \n", err.Error()))
+		return
+	}
+	refreshToken, err := utils.GenerateRefreshToken(userID)
 	if err != nil {
 		log.Printf("ERROR in handleCreateAccount: %s \n", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleCreateAccount: '%s' \n", err.Error()))
@@ -81,6 +101,8 @@ func (h *Handler) handleCreateAccount(w http.ResponseWriter, r *http.Request) {
 	jsonEncoder := json.NewEncoder(w)
 	jsonEncoder.Encode(map[string]string{
 		"token": token,
+		"token_exp": exp,
+		"refresh_token": refreshToken,
 		"uuid": userID,
 	})
 }
@@ -130,9 +152,15 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 	
 	if (matches) {
 		// Passwords match, login user
-		token, err := utils.GenerateJWTToken(user.ID)
+		token, exp, err := utils.GenerateJWTToken(user.ID)
 		if err != nil {
-			log.Printf("ERROR in handleLogin: %s \n", err)
+			log.Printf("ERROR in handleCreateAccount: %s \n", err)
+			utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleCreateAccount: '%s' \n", err.Error()))
+			return
+		}
+		refreshToken, err := utils.GenerateRefreshToken(user.ID)
+		if err != nil {
+			log.Printf("ERROR in handleCreateAccount: %s \n", err)
 			utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleCreateAccount: '%s' \n", err.Error()))
 			return
 		}
@@ -140,6 +168,8 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 		jsonEncoder := json.NewEncoder(w)
 		jsonEncoder.Encode(map[string]string{
 			"token": token,
+			"token_exp": exp,
+			"refresh_token": refreshToken,
 			"uuid": user.ID,
 		})
 	} else {
@@ -150,4 +180,55 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 func handleTestAuth(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("authorized!"))
+}
+
+func (h *Handler) handleRefreshToken(w http.ResponseWriter, r *http.Request) {
+	var err error
+
+	// Parse the refresh token from the request
+	var requestData struct {
+		RefreshToken string `json:"refresh_token"`
+		UserID string `json:"user_id"`
+	}
+
+	err = json.NewDecoder(r.Body).Decode(&requestData)
+	if err != nil {
+		log.Printf("ERROR in handleRefreshToken: %s \n", err)
+		utils.RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Error in handleRefreshToken: '%s' \n", err.Error()))
+		return
+	}
+
+	// Validate the refresh token
+	claims, err := utils.ValidateRefreshToken(requestData.RefreshToken, requestData.UserID)
+	if err != nil {
+		log.Printf("ERROR in handleRefreshToken: %s \n", err)
+		utils.RespondWithError(w, http.StatusUnauthorized, "Invalid or expired refresh token")
+		return
+	}
+
+	// Generate a new JWT (access token) and possibly a new refresh token
+	token, exp, err := utils.GenerateJWTToken(claims.UserID)
+	if err != nil {
+		log.Printf("ERROR in handleRefreshToken: %s \n", err)
+		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleRefreshToken: '%s' \n", err.Error()))
+		return
+	}
+
+	// Optionally generate a new refresh token if desired
+	refreshToken, err := utils.GenerateRefreshToken(claims.UserID)
+	if err != nil {
+		log.Printf("ERROR in handleRefreshToken: %s \n", err)
+		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleRefreshToken: '%s' \n", err.Error()))
+		return
+	}
+
+	// Send the new tokens back in the response
+	w.Header().Set("Content-Type", "application/json")
+	jsonEncoder := json.NewEncoder(w)
+	jsonEncoder.Encode(map[string]string{
+		"token":        token,
+		"token_exp":    exp,
+		"refresh_token": refreshToken,
+		"uuid":         claims.UserID,
+	})
 }

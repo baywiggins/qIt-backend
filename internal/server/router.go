@@ -10,4 +10,5 @@ func HandleRoutes(db *sql.DB) {
 	handlers.HandleSpotifyAuthRoutes(db)
 	handlers.HandleSpotifyControllerRoutes(db)
 	handlers.HandleAuthRoutes(db)
+	handlers.HandleRoomRoutes(db)
 }

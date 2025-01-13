@@ -27,6 +27,7 @@ type SpotifyRequestParams struct {
 func HandleSpotifyControllerRoutes(db *sql.DB) {
 	handler := &Handler{DB: db}
 
+	http.Handle("/spotify/playback-state", middlewares.LoggingMiddleware(http.HandlerFunc(handler.withSpotify(handler.handlePlaybackState, ""))))
 	http.Handle("/spotify/currently-playing", middlewares.LoggingMiddleware(http.HandlerFunc(handler.withSpotify(handler.handleCurrentlyPlaying, "/currently-playing"))))
 	http.Handle("/spotify/queue", middlewares.LoggingMiddleware(http.HandlerFunc(handler.withSpotify(handler.handleGetQueue, "/queue"))))
 	http.Handle("/spotify/search/track", middlewares.LoggingMiddleware(http.HandlerFunc(handler.withSpotify(handler.handleSearchByTrack, ""))))
@@ -39,7 +40,14 @@ func HandleSpotifyControllerRoutes(db *sql.DB) {
 // withSpotify is a wrapper for Spotify API endpoints with common setup.
 func (h *Handler) withSpotify(handlerFunc func(http.ResponseWriter, *http.Request, SpotifyRequestParams), path string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		accessToken, err := middlewares.GetAccessToken()
+		uuid := r.Header.Get("uuid")
+		if uuid == "" {
+			log.Printf("Error in withSpotify: uuid not provided in request")
+			utils.RespondWithError(w, http.StatusBadRequest, "uuid not provided in request")
+			return
+		}
+
+		accessToken, err := middlewares.GetAccessToken(uuid, h.DB)
 		if err != nil {
 			log.Printf("Error in withSpotify: '%s'", err.Error())
 			utils.RespondWithError(w, http.StatusInternalServerError, "Failed to get access token")
@@ -69,6 +77,31 @@ func sendSpotifyRequest(params SpotifyRequestParams, search bool) ([]byte, error
 	fmt.Println(sURL)
 
 	return services.SendSpotifyPlayerRequest(*sURL, params.Method, params.QueryParams, params.Headers)
+}
+
+// handlePlaybackState handles the current state of playback
+func (h* Handler) handlePlaybackState(w http.ResponseWriter, r *http.Request, params SpotifyRequestParams) {
+	body, err := sendSpotifyRequest(params, false)
+	if err != nil {
+		utils.HandleSpotifyError(w, err)
+		return
+	}
+
+
+	var playbackState models.PlaybackState
+	if err := json.Unmarshal(body, &playbackState); err != nil {
+		utils.HandleSpotifyError(w, err)
+		return
+	}
+
+	// Set the correct header for JSON response
+	w.Header().Set("Content-Type", "application/json")
+
+	// Encode the parsed JSON back to the response writer
+	if err := json.NewEncoder(w).Encode(playbackState); err != nil {
+		utils.HandleSpotifyError(w, err)
+		return
+	}
 }
 
 // handleCurrentlyPlaying handles the currently playing endpoint.
@@ -184,7 +217,8 @@ func (h *Handler) handleSearchByURL(w http.ResponseWriter, r *http.Request, para
 func (h *Handler) handlePlay(w http.ResponseWriter, r *http.Request, params SpotifyRequestParams) {
 	params.Method = http.MethodPut
 	params.Headers["Content-Type"] = "application/json"
-	if _, err := sendSpotifyRequest(params, false); err != nil {
+	if b, err := sendSpotifyRequest(params, false); err != nil {
+		fmt.Println(b)
 		utils.HandleSpotifyError(w, err)
 	}
 }

@@ -109,7 +109,7 @@ func (h *Handler) handleTestSpotifyAuth(w http.ResponseWriter, r *http.Request) 
 			status = http.StatusUnauthorized
 			message = "Unauthorized user attempted to access Spotify"
 		}
-		log.Printf(message + "\n")
+		log.Println(message)
 		utils.RespondWithError(w, status, message)
 		return
 	}

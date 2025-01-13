@@ -18,6 +18,7 @@ var (
     Scopes           string
     DBName           string
     AESKey           string
+    RedisAddress     string
 )
 
 // init function to load environment variables
@@ -38,8 +39,9 @@ func init() {
     Scopes           = os.Getenv("SCOPES")
     DBName           = os.Getenv("DB_NAME")
     AESKey           = os.Getenv("AES_KEY")
+    RedisAddress     = os.Getenv("REDIS_ADDRESS")
 
-    envarList := [9]string{SpotifyAuthURL, SpotifyPlayerURL, SpotifySearchURL, ClientID, API_URL, ClientSecret, Scopes, DBName, AESKey}
+    envarList := [10]string{SpotifyAuthURL, SpotifyPlayerURL, SpotifySearchURL, ClientID, API_URL, ClientSecret, Scopes, DBName, AESKey, RedisAddress}
 
     for i := range envarList {
         if envarList[i] == "" {

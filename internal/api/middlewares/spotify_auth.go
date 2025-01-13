@@ -12,8 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/patrickmn/go-cache"
-
 	"github.com/baywiggins/qIt-backend/internal/config"
 	"github.com/baywiggins/qIt-backend/internal/models"
 	"github.com/baywiggins/qIt-backend/pkg/utils"
@@ -26,8 +24,6 @@ type SpotifyTokenResponse struct {
 	ExpiresIn int `json:"expires_in"`
 	RefreshToken string `json:"refresh_token"`
 }
-
-var tokenCache = cache.New(3600*time.Second, 12*time.Hour)
 
 func GetSpotifyAuthURL(state string) (string, error) {
 	var err error;
@@ -64,24 +60,30 @@ func GetSpotifyAuthURL(state string) (string, error) {
 }
 
 // Function for Spotify controller endpoints to use
-func GetAccessToken() (string, error) {
+func GetAccessToken(uuid string, db *sql.DB) (string, error) {
 	var err error;
 
-	accessToken, accessFound := tokenCache.Get("accessToken")
-	_, refreshFound := tokenCache.Get("refreshToken")
+	accessToken, refreshToken, expiresIn, err := models.GetStateToAuthRowByID(db, uuid)
 
-	if !accessFound && !refreshFound {
-		// If neither are found, user needs to authenticate with Spotify
+	if err != nil {
+		// error in db function
+		return "", fmt.Errorf("error in GetStateToAuthRowByID: '%s'", err)
+	}
+
+	// Check if token is expired
+	if time.Now().UTC().After(expiresIn) {
+		fmt.Println("token is expired yipee")
+		tr, err := getRefreshToken(refreshToken, uuid, db)
+		fmt.Println(tr)
+
+		return tr.AccessToken, err
+	}
+
+	if (accessToken == "" || refreshToken == "") {
+		// If either aren't found, user needs to authenticate with Spotify
 		return "", errors.New("user must authenticate with spotify first")
-	} else if !accessFound && refreshFound{
-		// If access token not found, but refresh token is, get token from refresh function
-		tokenData, err := GetRefreshToken()
-		if err != nil {
-			return "", fmt.Errorf("error in GetAccessToken: '%s'", err.Error())
-		}
-		return tokenData.AccessToken, err
 	} else {
-		return accessToken.(string), err
+		return accessToken, err
 	}
 }
 
@@ -101,9 +103,6 @@ func GetAccessTokenFromSpotify(code string, state string, db *sql.DB) error {
 		return fmt.Errorf("error in GetAccessTokenFromSpotify: '%s'", err.Error())
 	}
 
-	tokenCache.Set("accessToken", tokenData.AccessToken, cache.DefaultExpiration)
-	tokenCache.Set("refreshToken", tokenData.RefreshToken, cache.DefaultExpiration)
-
 	encryptedAuthToken, err := utils.Encrypt(tokenData.AccessToken)
 	if err != nil {
 		return fmt.Errorf("error in GetAccessTokenFromSpotify: '%s'", err.Error())
@@ -117,7 +116,7 @@ func GetAccessTokenFromSpotify(code string, state string, db *sql.DB) error {
 		UserState: state,
 		AuthToken: encryptedAuthToken,
 		RefreshToken: encryptedRefreshToken,
-		ExpirationTime: time.Now().Add(time.Hour),
+		ExpirationTime: time.Now().UTC().Add(time.Hour).Format(time.RFC3339),
 	}
 	if err := models.InsertStateToAuth(db, sta); err != nil {
 		return fmt.Errorf("error in GetAccessTokenFromSpotify: '%s'", err.Error())
@@ -129,30 +128,30 @@ func GetAccessTokenFromSpotify(code string, state string, db *sql.DB) error {
 	return err
 }
 
-func GetRefreshToken() (SpotifyTokenResponse, error) {
+func getRefreshToken(refreshToken string, uuid string, db *sql.DB) (SpotifyTokenResponse, error) {
 	var err error;
-	// TODO Make sure there is a refresh token in the cache, and if not, deal with normal auth flow
-	refreshToken, found := tokenCache.Get("refreshToken")
-	if !found {
-		return SpotifyTokenResponse{}, errors.New("refreshToken not found in cache in GetRefreshToken")
-	}
 	// Get the URL to send POST request to
 	tokenURL := config.SpotifyAuthURL + "/api/token"
 	data := url.Values{}
 	// Add query params to POST request
 	data.Set("grant_type", "refresh_token")
-	data.Set("refresh_token", refreshToken.(string))
+	data.Set("refresh_token", refreshToken)
 
 	refreshTokenData, err := sendPostRequestWithAuthorization(tokenURL, data)
 	if err != nil {
 		return SpotifyTokenResponse{}, fmt.Errorf("error in GetRefreshToken: '%s'", err.Error())
 	}
 
-	// Update our cache again with new token
-	tokenCache.Set("accessToken", refreshTokenData.AccessToken, cache.DefaultExpiration)
-	if refreshTokenData.RefreshToken != "" {
-		tokenCache.Set("refreshToken", refreshTokenData.RefreshToken, cache.NoExpiration)
+	// Check if new refresh token was provided in the request, if not just keep using the one we have
+	newRefreshToken := refreshTokenData.RefreshToken
+	if refreshTokenData.RefreshToken == "" {
+		newRefreshToken = refreshToken
 	}
+	// Get new expiry time (1 hour after obtaining it)
+	expirationTime := time.Now().Add(time.Hour).Format(time.RFC3339)
+
+	// Update auth token info in DB
+	models.UpdateAccessTokenByID(db, uuid, refreshTokenData.AccessToken, newRefreshToken, expirationTime)
 
 	return refreshTokenData, err
 }
