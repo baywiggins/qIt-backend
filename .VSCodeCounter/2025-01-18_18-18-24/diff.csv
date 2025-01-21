@@ -1,0 +1,28 @@
+"filename", "language", "MS SQL", "Go", "HTML", "Go Checksum File", "Go Module File", "comment", "blank", "total"
+"/Users/bay/Desktop/Personal Projects/qIt-backend/cmd/api/main.go", "Go", 0, 15, 0, 0, 0, 2, 3, 20
+"/Users/bay/Desktop/Personal Projects/qIt-backend/go.mod", "Go Module File", 0, 0, 0, 0, 14, 0, 3, 17
+"/Users/bay/Desktop/Personal Projects/qIt-backend/go.sum", "Go Checksum File", 0, 0, 0, 20, 0, 0, 0, 20
+"/Users/bay/Desktop/Personal Projects/qIt-backend/internal/api/handlers/auth.go", "Go", 0, 182, 0, 0, 0, 22, 31, 235
+"/Users/bay/Desktop/Personal Projects/qIt-backend/internal/api/handlers/room.go", "Go", 0, 58, 0, 0, 0, 5, 16, 79
+"/Users/bay/Desktop/Personal Projects/qIt-backend/internal/api/handlers/spotify_auth.go", "Go", 0, 53, 0, 0, 0, 8, 9, 70
+"/Users/bay/Desktop/Personal Projects/qIt-backend/internal/api/handlers/spotify_controller.go", "Go", 0, -75, 0, 0, 0, -36, 16, -95
+"/Users/bay/Desktop/Personal Projects/qIt-backend/internal/api/middlewares/auth.go", "Go", 0, 35, 0, 0, 0, 0, 7, 42
+"/Users/bay/Desktop/Personal Projects/qIt-backend/internal/api/middlewares/spotify_auth.go", "Go", 0, 16, 0, 0, 0, 3, 3, 22
+"/Users/bay/Desktop/Personal Projects/qIt-backend/internal/config/config.go", "Go", 0, 12, 0, 0, 0, 0, 3, 15
+"/Users/bay/Desktop/Personal Projects/qIt-backend/internal/db/create_tables.sql", "MS SQL", 44, 0, 0, 0, 0, 0, 7, 51
+"/Users/bay/Desktop/Personal Projects/qIt-backend/internal/db/db.go", "Go", 0, 15, 0, 0, 0, 1, 5, 21
+"/Users/bay/Desktop/Personal Projects/qIt-backend/internal/db/migrations.go", "Go", 0, 19, 0, 0, 0, 0, 5, 24
+"/Users/bay/Desktop/Personal Projects/qIt-backend/internal/models/spotify.go", "Go", 0, 6, 0, 0, 0, 0, 1, 7
+"/Users/bay/Desktop/Personal Projects/qIt-backend/internal/models/state_to_auth.go", "Go", 0, 102, 0, 0, 0, 14, 26, 142
+"/Users/bay/Desktop/Personal Projects/qIt-backend/internal/models/users.go", "Go", 0, 40, 0, 0, 0, 0, 13, 53
+"/Users/bay/Desktop/Personal Projects/qIt-backend/internal/server/pubsub/pub_sub_server.go", "Go", 0, 54, 0, 0, 0, 4, 13, 71
+"/Users/bay/Desktop/Personal Projects/qIt-backend/internal/server/router.go", "Go", 0, 3, 0, 0, 0, 0, 1, 4
+"/Users/bay/Desktop/Personal Projects/qIt-backend/internal/server/server.go", "Go", 0, 6, 0, 0, 0, 0, 0, 6
+"/Users/bay/Desktop/Personal Projects/qIt-backend/internal/services/spotify_service.go", "Go", 0, 7, 0, 0, 0, 2, 2, 11
+"/Users/bay/Desktop/Personal Projects/qIt-backend/pkg/utils/error_utils.go", "Go", 0, 15, 0, 0, 0, 3, 2, 20
+"/Users/bay/Desktop/Personal Projects/qIt-backend/pkg/utils/jwt_utils.go", "Go", 0, 78, 0, 0, 0, 13, 22, 113
+"/Users/bay/Desktop/Personal Projects/qIt-backend/pkg/utils/security_utils.go", "Go", 0, 66, 0, 0, 0, 13, 22, 101
+"/Users/bay/Desktop/Personal Projects/qIt-backend/pkg/utils/state_utils.go", "Go", 0, 12, 0, 0, 0, 0, 3, 15
+"/Users/bay/Desktop/Personal Projects/qIt-backend/static/index.html", "HTML", 0, 0, 22, 0, 0, 0, 8, 30
+"/Users/bay/Desktop/Personal Projects/qIt-backend/test.db", "MS SQL", 50, 0, 0, 0, 0, 0, 3, 53
+"Total", "-", 94, 719, 22, 20, 14, 54, 224, 1147

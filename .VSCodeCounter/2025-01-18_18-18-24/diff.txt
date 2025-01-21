@@ -1,0 +1,71 @@
+Date : 2025-01-18 18:18:24
+Directory : /Users/bay/Desktop/Personal Projects/qIt-backend
+Total : 26 files,  869 codes, 54 comments, 224 blanks, all 1147 lines
+
+Languages
++------------------+------------+------------+------------+------------+------------+
+| language         | files      | code       | comment    | blank      | total      |
++------------------+------------+------------+------------+------------+------------+
+| Go               |         21 |        719 |         54 |        203 |        976 |
+| MS SQL           |          2 |         94 |          0 |         10 |        104 |
+| HTML             |          1 |         22 |          0 |          8 |         30 |
+| Go Checksum File |          1 |         20 |          0 |          0 |         20 |
+| Go Module File   |          1 |         14 |          0 |          3 |         17 |
++------------------+------------+------------+------------+------------+------------+
+
+Directories
++----------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                         | files      | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                            |         26 |        869 |         54 |        224 |      1,147 |
+| . (Files)                                                                                    |          3 |         84 |          0 |          6 |         90 |
+| cmd                                                                                          |          1 |         15 |          2 |          3 |         20 |
+| cmd/api                                                                                      |          1 |         15 |          2 |          3 |         20 |
+| internal                                                                                     |         17 |        577 |         23 |        158 |        758 |
+| internal/api                                                                                 |          6 |        269 |          2 |         82 |        353 |
+| internal/api/handlers                                                                        |          4 |        218 |         -1 |         72 |        289 |
+| internal/api/middlewares                                                                     |          2 |         51 |          3 |         10 |         64 |
+| internal/config                                                                              |          1 |         12 |          0 |          3 |         15 |
+| internal/db                                                                                  |          3 |         78 |          1 |         17 |         96 |
+| internal/models                                                                              |          3 |        148 |         14 |         40 |        202 |
+| internal/server                                                                              |          3 |         63 |          4 |         14 |         81 |
+| internal/server (Files)                                                                      |          2 |          9 |          0 |          1 |         10 |
+| internal/server/pubsub                                                                       |          1 |         54 |          4 |         13 |         71 |
+| internal/services                                                                            |          1 |          7 |          2 |          2 |         11 |
+| pkg                                                                                          |          4 |        171 |         29 |         49 |        249 |
+| pkg/utils                                                                                    |          4 |        171 |         29 |         49 |        249 |
+| static                                                                                       |          1 |         22 |          0 |          8 |         30 |
++----------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++----------------------------------------------------------------------------------------------+------------------+------------+------------+------------+------------+
+| filename                                                                                     | language         | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------------------+------------------+------------+------------+------------+------------+
+| /Users/bay/Desktop/Personal Projects/qIt-backend/cmd/api/main.go                             | Go               |         15 |          2 |          3 |         20 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/go.mod                                      | Go Module File   |         14 |          0 |          3 |         17 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/go.sum                                      | Go Checksum File |         20 |          0 |          0 |         20 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/internal/api/handlers/auth.go               | Go               |        182 |         22 |         31 |        235 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/internal/api/handlers/room.go               | Go               |         58 |          5 |         16 |         79 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/internal/api/handlers/spotify_auth.go       | Go               |         53 |          8 |          9 |         70 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/internal/api/handlers/spotify_controller.go | Go               |        -75 |        -36 |         16 |        -95 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/internal/api/middlewares/auth.go            | Go               |         35 |          0 |          7 |         42 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/internal/api/middlewares/spotify_auth.go    | Go               |         16 |          3 |          3 |         22 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/internal/config/config.go                   | Go               |         12 |          0 |          3 |         15 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/internal/db/create_tables.sql               | MS SQL           |         44 |          0 |          7 |         51 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/internal/db/db.go                           | Go               |         15 |          1 |          5 |         21 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/internal/db/migrations.go                   | Go               |         19 |          0 |          5 |         24 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/internal/models/spotify.go                  | Go               |          6 |          0 |          1 |          7 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/internal/models/state_to_auth.go            | Go               |        102 |         14 |         26 |        142 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/internal/models/users.go                    | Go               |         40 |          0 |         13 |         53 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/internal/server/pubsub/pub_sub_server.go    | Go               |         54 |          4 |         13 |         71 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/internal/server/router.go                   | Go               |          3 |          0 |          1 |          4 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/internal/server/server.go                   | Go               |          6 |          0 |          0 |          6 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/internal/services/spotify_service.go        | Go               |          7 |          2 |          2 |         11 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/pkg/utils/error_utils.go                    | Go               |         15 |          3 |          2 |         20 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/pkg/utils/jwt_utils.go                      | Go               |         78 |         13 |         22 |        113 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/pkg/utils/security_utils.go                 | Go               |         66 |         13 |         22 |        101 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/pkg/utils/state_utils.go                    | Go               |         12 |          0 |          3 |         15 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/static/index.html                           | HTML             |         22 |          0 |          8 |         30 |
+| /Users/bay/Desktop/Personal Projects/qIt-backend/test.db                                     | MS SQL           |         50 |          0 |          3 |         53 |
+| Total                                                                                        |                  |        869 |         54 |        224 |      1,147 |
++----------------------------------------------------------------------------------------------+------------------+------------+------------+------------+------------+

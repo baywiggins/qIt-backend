@@ -74,8 +74,6 @@ func sendSpotifyRequest(params SpotifyRequestParams, search bool) ([]byte, error
 		return nil, fmt.Errorf("failed to parse URL: %w", err)
 	}
 
-	fmt.Println(sURL)
-
 	return services.SendSpotifyPlayerRequest(*sURL, params.Method, params.QueryParams, params.Headers)
 }
 
@@ -217,8 +215,7 @@ func (h *Handler) handleSearchByURL(w http.ResponseWriter, r *http.Request, para
 func (h *Handler) handlePlay(w http.ResponseWriter, r *http.Request, params SpotifyRequestParams) {
 	params.Method = http.MethodPut
 	params.Headers["Content-Type"] = "application/json"
-	if b, err := sendSpotifyRequest(params, false); err != nil {
-		fmt.Println(b)
+	if _, err := sendSpotifyRequest(params, false); err != nil {
 		utils.HandleSpotifyError(w, err)
 	}
 }

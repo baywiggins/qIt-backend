@@ -127,9 +127,6 @@ func UpdateAccessTokenByID(db *sql.DB, uuid string, accessToken string, refreshT
 	// Executre query and return error if exists
 	_, err = db.Exec(query)
 
-	fmt.Println(query)
-	fmt.Println(err)
-
 	return err
 }
 

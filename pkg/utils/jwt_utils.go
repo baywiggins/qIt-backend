@@ -18,7 +18,7 @@ type Claims struct {
 
 // GenerateJWTToken generates a short-lived access token (e.g., 15 minutes)
 func GenerateJWTToken(userID string) (string, string, error) {
-	expirationTime := jwt.NewNumericDate(time.Now().Add(1 * time.Hour)) // Access token expiration time
+	expirationTime := jwt.NewNumericDate(time.Now().Add(60 * time.Second)) // Access token expiration time
 	claims := Claims{
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -29,7 +29,7 @@ func GenerateJWTToken(userID string) (string, string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signed, err := token.SignedString(SecretKey)
 
-	exp := time.Now().UTC().Add(59 * time.Minute).Format(time.RFC3339)
+	exp := time.Now().UTC().Add(58 * time.Second).Format(time.RFC3339)
 
 	return signed, exp, err
 }
@@ -74,6 +74,7 @@ func ValidateJWTToken(tokenString string, userID string) (*Claims, error) {
 
 // ValidateRefreshToken validates the refresh token and returns the claims if valid
 func ValidateRefreshToken(tokenString string, userID string) (*Claims, error) {
+
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(t *jwt.Token) (interface{}, error) {
 		return RefreshSecretKey, nil
 	})
@@ -86,15 +87,15 @@ func ValidateRefreshToken(tokenString string, userID string) (*Claims, error) {
 	if !ok || !token.Valid {
 		return nil, errors.New("invalid refresh token")
 	}
+
 	if claims.UserID != userID {
 		return nil, errors.New("unauthorized user")
 	}
 
-	// If the refresh token is expired, return error
-	if claims.ExpiresAt.Time.Before(time.Now()) {
-		return nil, errors.New("refresh token expired")
-	}
-
+	// // If the refresh token is expired, return error
+	// if claims.ExpiresAt.Time.Before(time.Now()) {
+	// 	return nil, errors.New("refresh token expired")
+	// }
 	return claims, nil
 }
 

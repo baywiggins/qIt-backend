@@ -101,7 +101,6 @@ func (h *Handler) handleTestSpotifyAuth(w http.ResponseWriter, r *http.Request) 
 	// Get the spotify auth token from the db
 	token, err := models.GetAuthTokenByID(h.DB, uuid)
 
-	fmt.Println(uuid)
 	if err != nil {
 		status := http.StatusInternalServerError
 		message := "Error in handleTestSpotifyAuth" 
@@ -113,8 +112,6 @@ func (h *Handler) handleTestSpotifyAuth(w http.ResponseWriter, r *http.Request) 
 		utils.RespondWithError(w, status, message)
 		return
 	}
-
-	fmt.Println(token)
 
 	sURL, err := url.Parse("https://api.spotify.com/v1/me")
 	if err != nil {

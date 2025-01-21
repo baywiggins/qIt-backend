@@ -138,11 +138,11 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 		// They never finished, delete account and return 404
 		err = models.DeleteUserByID(h.DB, user.ID)
 		if err != nil {
-			log.Printf("ERROR in handleSignIn: %s \n", err)
-			utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleSignIn: '%s' \n", err.Error()))
+			log.Printf("ERROR in handleLogin: %s \n", err)
+			utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleLogin: '%s' \n", err.Error()))
 			return
 		}
-		log.Printf("ERROR in handleSignIn: '%s' not found \n", user.Username)
+		log.Printf("ERROR in handleLogin: '%s' not found \n", user.Username)
 		utils.RespondWithError(w, http.StatusNotFound, "Error: 'user not found'")
 		return
 	}
@@ -214,13 +214,13 @@ func (h *Handler) handleRefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Optionally generate a new refresh token if desired
-	refreshToken, err := utils.GenerateRefreshToken(claims.UserID)
-	if err != nil {
-		log.Printf("ERROR in handleRefreshToken: %s \n", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleRefreshToken: '%s' \n", err.Error()))
-		return
-	}
+	// // Optionally generate a new refresh token if desired
+	// refreshToken, err := utils.GenerateRefreshToken(claims.UserID)
+	// if err != nil {
+	// 	log.Printf("ERROR in handleRefreshToken: %s \n", err)
+	// 	utils.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error in handleRefreshToken: '%s' \n", err.Error()))
+	// 	return
+	// }
 
 	// Send the new tokens back in the response
 	w.Header().Set("Content-Type", "application/json")
@@ -228,7 +228,7 @@ func (h *Handler) handleRefreshToken(w http.ResponseWriter, r *http.Request) {
 	jsonEncoder.Encode(map[string]string{
 		"token":        token,
 		"token_exp":    exp,
-		"refresh_token": refreshToken,
+		// "refresh_token": refreshToken,
 		"uuid":         claims.UserID,
 	})
 }

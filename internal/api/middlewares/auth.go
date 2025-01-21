@@ -31,7 +31,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			if err.Error() != "invalid token" && err.Error() != "unauthorized user" && err.Error() != "token has invalid claims: token is expired" {
 				statusCode = http.StatusInternalServerError
 			}
-			fmt.Println(statusCode)
+			
 			log.Printf("ERROR in AuthMiddleware: %s \n", err)
 				utils.RespondWithError(w, statusCode, fmt.Sprintf("Error: '%s' \n", err.Error()))
 				return

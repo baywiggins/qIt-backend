@@ -41,8 +41,6 @@ func GetSpotifyAuthURL(state string) (string, error) {
 		"show_dialog": "true",
 	}
 
-	fmt.Println(params)
-
 	u, err := url.Parse(authURL)
 	if err != nil {
 		return "", fmt.Errorf("error in GetSpotifyAuthURL: '%s'", err.Error())
@@ -53,8 +51,6 @@ func GetSpotifyAuthURL(state string) (string, error) {
 		q.Set(k, v)
 	}
 	u.RawQuery = q.Encode()
-
-	fmt.Println("auth url: " + u.String())
 
 	return u.String(), err
 }
@@ -72,9 +68,7 @@ func GetAccessToken(uuid string, db *sql.DB) (string, error) {
 
 	// Check if token is expired
 	if time.Now().UTC().After(expiresIn) {
-		fmt.Println("token is expired yipee")
 		tr, err := getRefreshToken(refreshToken, uuid, db)
-		fmt.Println(tr)
 
 		return tr.AccessToken, err
 	}
